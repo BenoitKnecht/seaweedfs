@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -21,6 +23,8 @@ import (
 	"github.com/seaweedfs/seaweedfs/weed/command"
 	"github.com/seaweedfs/seaweedfs/weed/glog"
 	util_http "github.com/seaweedfs/seaweedfs/weed/util/http"
+
+	heapprofiler "github.com/johannes94/go-heapdump-threshold"
 )
 
 var IsDebug *bool
@@ -84,6 +88,13 @@ func main() {
 			}
 		}
 		return
+	}
+
+	if memoryLimit := os.Getenv("MEMORY_LIMIT"); memoryLimit != "" {
+		if limit, err := strconv.ParseUint(memoryLimit, 10, 64); err == nil {
+			heapProfiler := heapprofiler.NewHeapProfiler(.8, limit, "/data/heapprofiler", time.Minute)
+			go heapProfiler.DumpHeapOnThreshhold(context.Background(), 30*time.Second)
+		}
 	}
 
 	util_http.InitGlobalHttpClient()
